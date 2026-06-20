@@ -7,9 +7,9 @@
 #include <BLEAdvertisedDevice.h>
 
 
-const char* ssid     = "SpectrumSetup-5305";
-const char* password = "suchnation402";
-const char* udpAddress = "192.168.1.144";
+const char* ssid     = "-";
+const char* password = "";
+const char* udpAddress = "1";
 const int udpPort = 5005;
 
 const int yellowPin = 2;
@@ -19,10 +19,16 @@ const int redPin = 0;
 WiFiUDP udp;
 BLEScan* pBLEScan;
 
+//states
+const int STATE_NO_WIFI = 0;
+const int STATE_WIFI_NO_GUI = 1;
+const int STATE_WIFI_AND_GUI = 2;
+const int STATE_SCANNING = 3;
+const int STATE_LOCATING = 4;
+
+
 //timeout for connecting to wifi
 const unsigned long wifiTimeout = 10000; // 10 seconds
-
-
 
 void setup() {
   pinMode(yellowPin, OUTPUT);
@@ -51,19 +57,29 @@ void setup() {
   pBLEScan = BLEDevice::getScan();
   pBLEScan->setActiveScan(true);
   
-  // FIXED: Set window equal to interval for a 100% continuous reception scan cycle
-  pBLEScan->setInterval(200);
-  pBLEScan->setWindow(200);
 }
 
+
 void loop() {
-  // 1. Regular tracking loop data dispatch
+  //if ack receieved from gui
   udp.beginPacket(udpAddress, udpPort);
-  if(rand() % 2 == 0) {
-    udp.print("GREEN");
-  } else {
-    udp.print("RED");  
-  }
+  udp.print("transmitting");
   udp.endPacket();
+  if (udp.parsePacket()) {
+    String message = udp.readString();
+    if (message == "ACK") {
+      digitalWrite(yellowPin, LOW); //green means wifi and gui connection
+      digitalWrite(greenPin, HIGH);
+      Serial.println("ACK received from GUI, starting BLE scan...");
+    }
+    if (message == "GET_DEVICES") {
+      //todo
+    }
+  }
+  else{
+    digitalWrite(yellowPin, HIGH); //yellow means wifi but no gui connection
+    digitalWrite(greenPin, LOW);
+    }
+  
 
 }
